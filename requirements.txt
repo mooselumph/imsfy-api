@@ -1,2 +1,10 @@
- Django==2.1.4
- psycopg2
+Django==2.1.4
+django-environ==0.4.4
+psycopg2-binary
+djangorestframework==3.8.2
+django-rest-auth[with_social]
+djangorestframework-jwt
+elasticsearch>=6.0.0,<7.0.0
+elasticsearch-dsl>=6.0.0,<7.0.0
+natto-py
+django-cors-headers

@@ -1,0 +1,9 @@
+<table>
+    {% for token in tokens %}
+    <tr>
+        {% for item in token %}
+        <td>{{item}}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>

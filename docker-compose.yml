@@ -1,14 +1,28 @@
 version: '3'
 
 services:
+  es:
+    image: mooselumph/es-kuromoji
+    container_name: es
+    environment:
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
   db:
     image: postgres
   web:
     build: .
     command: python3 manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/code
     ports:
       - "8000:8000"
+    volumes:
+      - ./django-app:/opt/django-app
     depends_on:
       - db
+      - es
+
+volumes:
+    esdata1:
+      driver: local
