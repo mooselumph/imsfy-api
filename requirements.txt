@@ -1,9 +1,9 @@
-Django==2.1.4
+django>=2.1.5
 django-environ==0.4.4
 psycopg2-binary
 djangorestframework==3.8.2
 django-rest-auth[with_social]
-djangorestframework-jwt
+djangorestframework_simplejwt
 elasticsearch>=6.0.0,<7.0.0
 elasticsearch-dsl>=6.0.0,<7.0.0
 natto-py

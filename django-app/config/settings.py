@@ -85,7 +85,7 @@ DJANGO_APPS = (
 
 THIRD_PARTY_APPS = (
      'rest_framework',
-     'rest_framework.authtoken', #not needed if using JWT
+     #'rest_framework.authtoken', #not needed if using JWT
      #'mod_wsgi.server',
      'rest_auth',
      'rest_auth.registration',
@@ -170,20 +170,38 @@ AUTH_PASSWORD_VALIDATORS = [
 """ Django Rest Framework """
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-}
-
-""" Djangorestframework-JWT """
-# Configure the JWTs to expire after 1 hour, and allow users to refresh near-expiration tokens
-JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=1),
-    'JWT_ALLOW_REFRESH': True,
 }
 
 # Make JWT Auth the default authentication mechanism for Django
 # Enables django-rest-auth to use JWT tokens instead of regular tokens.
-REST_USE_JWT = True
+REST_USE_JWT = False # django-rest-auth only supports djangorestframework_jwt natively.
+
+""" Simple JWT """
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+
+    'ALGORITHM': 'HS256',
+    'VERIFYING_KEY': None,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
 
 """ Django-Allauth """
 # All-auth configuration for email login
@@ -216,10 +234,6 @@ CORS_ORIGIN_ALLOW_ALL = env.bool('CORS_ORIGIN_ALLOW_ALL', True) # True for debug
 
 # Session authentication for development
 REST_USE_SESSION_AUTH = env.bool('REST_USE_SESSION_AUTH', False)
-
-if REST_USE_SESSION_AUTH:
-    REST_FRAMEWORK = {}
-    REST_USE_JWT = False
 
 
 
