@@ -4,23 +4,35 @@ from project.api import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 from .auth.views import JWTLoginView
 
+# Routers
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'article', views.ArticleViewSet)
 
+# Auth
 urlpatterns = [
     url(r'^', include(router.urls)),
-    url(r'^auth/login/$',JWTLoginView.as_view(), name='rest_login'),
+    url(r'^api-auth/', include('rest_framework.urls')),
+    url(r'^auth/login/$',JWTLoginView.as_view(), name='rest_login'), # This needs to come before rest_auth.urls
     url(r'^auth/', include('rest_auth.urls')),
     url(r'^auth/registration/', include('rest_auth.registration.urls')),
     url(r'^auth/token/$', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     url(r'^auth/token/refresh/$', TokenRefreshView.as_view(), name='token_refresh'),
     url(r'^auth/token/verify/$', TokenVerifyView.as_view(), name='token_verify'),
-    url(r'^import/article/$',views.ArticleImport.as_view(),name='import-article'),
-    url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceLookup.as_view(),name='sentence-by-word'),
-    url(r'^tokenize/',views.Tokenizer.as_view(),name='tokenizer'),
 ]
 
+# Import
 urlpatterns += [
-    url(r'^api-auth/', include('rest_framework.urls')),
+    url(r'^import/article/$',views.ArticleImport.as_view(),name='import-article'), 
+]
+
+# Search
+urlpatterns += [
+    url(r'^word/(?P<word>\w+)/raw-sentences/$',views.RawSentenceLookup.as_view(),name='raw-sentences-by-word'), # For development
+    url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceLookup.as_view(),name='sentences-by-word'), 
+]
+
+# Development
+urlpatterns += [ 
+    url(r'^tokenize/',views.Tokenizer.as_view(),name='tokenizer'),
 ]

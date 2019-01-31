@@ -2,7 +2,16 @@ from django.shortcuts import render
 from django.contrib.auth.models import User
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from project.api.serializers import UserSerializer, ArticleSerializer, SentenceSerializer, ArticleImportSerializer, SentenceLookupSerializer, TokenizerSerializer
+from project.api.serializers import (
+    UserSerializer, 
+    ArticleSerializer, 
+    ArticleWordsSerializer,
+    RawSentenceSerializer, 
+    SentenceSerializer, 
+    ArticleImportSerializer, 
+    SentenceLookupSerializer, 
+    TokenizerSerializer
+)
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -39,6 +48,14 @@ class ArticleViewSet(viewsets.ModelViewSet):
     serializer_class = ArticleSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
+    # For development
+    @action(detail=True,url_path='raw-sentences')
+    def raw_sentences(self, request, *args, **kwargs):
+        article = self.get_object()
+        sentences = article.sentences.all()
+        serializer = RawSentenceSerializer(sentences,many=True,context={'request': request})
+        return Response(serializer.data)
+
     @action(detail=True)
     def sentences(self, request, *args, **kwargs):
         article = self.get_object()
@@ -46,6 +63,11 @@ class ArticleViewSet(viewsets.ModelViewSet):
         serializer = SentenceSerializer(sentences,many=True,context={'request': request})
         return Response(serializer.data)
     
+    @action(detail=True)
+    def words(self, request, *args, **kwargs):
+        article = self.get_object()
+        serializer = ArticleWordsSerializer(article,many=False,context={'request': request})
+        return Response(serializer.data)
 
 from project.api.analysis import get_sentences
 
@@ -69,7 +91,7 @@ class ArticleImport(APIView):
             data = serializer.validated_data
 
             # Perform Sentence Segmentation
-            sentences = get_sentences(data['blocks'])
+            sentences,words = get_sentences(data['blocks'])
 
             # Index article, if not already within index            
             result = index_article(userId,data['remote_url'],data['title'],data['content'],sentences)
@@ -77,13 +99,33 @@ class ArticleImport(APIView):
             # Add article to database
             if result['created']:
                 a = result['article']
-                import_article(data['remote_url'],a.meta.id,data['title'],sentences)
+                import_article(data['remote_url'],a.meta.id,data['title'],sentences,words)
 
             del result['article']
                 
             return Response({'result':result,'data':data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# For development
+class RawSentenceLookup(APIView):
+    """
+    View to list all users in the system.
+
+    * Only admin users are able to access this view.
+    """
+    #permission_classes = (permissions.IsAdminUser,)
+    serializer_class = SentenceSerializer
+
+    def get(self, request, word, format=None):
+
+        sentences = sentence_search(word)   
+        data = {"sentences":sentences}    
+            
+        serializer = SentenceLookupSerializer(data=data)
+        
+        if serializer.is_valid():
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class SentenceLookup(APIView):
     """

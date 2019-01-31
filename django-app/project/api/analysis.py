@@ -1,14 +1,15 @@
 #from py4j.java_gateway import JavaGateway
 from natto import MeCab
 import re
+from .app_settings import SEARCHABLE_POSID
     
 def get_sentences(blocks):
 
     blocks = segment_blocks(blocks)
     sentences = unblock_sentences(blocks)
-    sentences = tokenize_sentences(sentences)
+    words = tokenize_sentences(sentences)
 
-    return sentences
+    return sentences, words
     
 
 def segment_blocks(blocks):
@@ -39,8 +40,7 @@ def segment_block(block):
     
         segments = re.split('(<e[0-9]+>)',text)
         
-        els = []
-        
+        els = []        
         for segment in segments:
             m = re.match('<e([0-9]+)>',segment)
             if m:
@@ -49,9 +49,14 @@ def segment_block(block):
             else:
                 if segment:
                     els.append({'type':'text','content':segment})
-                
+        
+        fulltext = ''
+        for el in els:
+            if 'content' in el:
+                fulltext += el['content']
+
         #return els
-        return {'type':'sentence','text':text,'elements':els}
+        return {'type':'sentence','text':fulltext,'elements':els}
 
 
     def chunk_quotes(text):
@@ -107,39 +112,60 @@ def unblock_sentences(blocks):
 
     return sentences
       
-def tokenize_sentences(sentences,dictionary='ipadic'):
-    
-    #gateway = JavaGateway()    
-    #tokenizer = gateway.entry_point.getTokenizer(dictionary)
-       
-    
-    def tokenize_element(el):
-        
-        with MeCab() as nm:
+def tokenize_sentences(sentences,dictionary='ipadic'):   
 
-            if 'content' in el:
-            
-                #tokens = tokenizer.tokenize(el['content']);                
-                #token.getSurface() + "\t" + token.getAllFeatures()
-                
-                tokens = nm.parse(el['content'], as_nodes=True)
-                                
-                el['tokens'] = [token.surface + ',' + token.feature for token in tokens]
-                
-            return el
-        
-    def tokenize_sentence(sentence):
+    article_words = set()
+
+    for sentence in sentences:
+        words = set()
         if (sentence['type']=='sentence'):
-            sentence['elements'] = [tokenize_element(el) for el in sentence['elements']]
-        return sentence
-        
-    sentences = [tokenize_sentence(sentence) for sentence in sentences]
+            for el in sentence['elements']:
+                if 'content' in el:
+                    el['tokens'],el_words = tokenize_text(el['content'])
+                    words = words | el_words # Union of sets
+            sentence['words'] = list(words)
+            article_words = article_words | words
 
-    return sentences
-  
-def tokenize_text(sentence):
-    
-    with MeCab(r'-F%m,%f[0],%h,%f[8]\n -U?,?,?,?\n') as nm:  
+    return list(article_words)
+
+def tokenize_text(text):
+
+    # https://github.com/buruzaemon/natto-py/wiki/Output-Formatting
+    # Ex. custom node format
+    #
+    # -F         ... short-form of --node-format
+    # %F,[6,8,0] ... extract these elements from ChaSen feature as CSV
+    #                - morpheme root-form (6th index)
+    #                - reading (7th index)
+    #                - part-of-speech (0th index)
+    # %h         ... part-of-speech ID (IPADIC) (https://github.com/buruzaemon/natto/wiki/Node-Parsing-posid)
+    #
+    # -U         ... short-form of --unk-format
+    #                specify empty CSV ,,, when morpheme cannot be found
+    #                in dictionary
+    #
+        
+    tokens = []
+    words = set()
+
+    with MeCab(r'-F%F,[6,8,0],%h\n -U,,,\n') as nm:
+            
+            for n in nm.parse(text, as_nodes=True):
+                if n.is_nor():
+                    tokens.append(n.surface + ',' + n.feature)
+
+                    parts = n.feature.split(',')
+
+                    if int(parts[3]) in SEARCHABLE_POSID:
+                        words.add(parts[0])
+
+    return tokens,words
+
+def tokenize_text_old(sentence):
+
+
+    with MeCab(r'-F%F,[6,8,0],%h\n -U,,,\n') as nm:
+    #with MeCab(r'-F%m,%f[0],%h,%f[8]\n -U?,?,?,?\n') as nm:  
 
         summary = []
         for n in nm.parse(sentence, as_nodes=True):
@@ -149,7 +175,7 @@ def tokenize_text(sentence):
 
     return summary
     
-def tokenize_text_old(sentence,dictionary='ipadic'):
+def tokenize_text_java(sentence,dictionary='ipadic'):
 
     gateway = JavaGateway()    
     tokenizer = gateway.entry_point.getTokenizer(dictionary)

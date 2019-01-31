@@ -15,13 +15,6 @@ kuromoji = analyzer('kuromoji',
     char_filter=["html_strip"]
 )
 
-import re
-
-def segment_sentences(content):
-    # Split sentences at explicit newlines, english and japanese end of sentence markers.
-    sentences = re.findall(r"((?:(?:「.+?」)?.*?)+[\n\.\?!。？！]+)",content+"\n") 
-    return sentences
-        
     
 class Sentence(InnerDoc):
     content = Text(analyzer=kuromoji)
@@ -170,3 +163,13 @@ def sentence_search(term):
         
     return sentences
     
+# Deleting article
+from django.dispatch import receiver
+from django.db.models.signals import pre_delete
+from project.api.models import Article as ArticleModel
+
+@receiver(pre_delete,sender=ArticleModel,dispatch_uid="index_remove_article")
+def remove_article(sender, **kwargs):
+
+    article = Article.get(id=kwargs['instance'].es_id)
+    article.delete()
