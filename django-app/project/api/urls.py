@@ -26,7 +26,13 @@ urlpatterns += [
     url(r'^import/article/$',views.ArticleImport.as_view(),name='import-article'), 
 ]
 
-# Search
+# Encounter Information
+urlpatterns += [
+    url(r'^encounter/article/(?P<article_id>\w+)/sentence/(?P<sentence_num>\w+)/$',views.SentenceEncounter.as_view(),name='sentence-encounter'), 
+    url(r'^encounter/article/(?P<article_id>\w+)/sentence/(?P<sentence_num>\w+)/word/(?P<word>\w+)/$',views.WordEncounter.as_view(),name='word-encounter'), 
+]
+
+# Sentence Search
 urlpatterns += [
     url(r'^word/(?P<word>\w+)/raw-sentences/$',views.RawSentenceLookup.as_view(),name='raw-sentences-by-word'), # For development
     url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceLookup.as_view(),name='sentences-by-word'), 

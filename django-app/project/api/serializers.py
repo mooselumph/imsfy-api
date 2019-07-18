@@ -32,21 +32,21 @@ class RawSentenceSerializer(serializers.HyperlinkedModelSerializer):
     
     class Meta:
         model = Sentence
-        fields = ('order','content','article')
+        fields = ('order','category','text','words','elements','article')
 
 # This serializer must take the sentence object and user and provide the customized output
 
 class SentenceSerializer(serializers.ModelSerializer):
-    sentence = serializers.SerializerMethodField()
+    #sentence = serializers.SerializerMethodField()
+    viewed = serializers.SerializerMethodField()
 
     class Meta:
         model = Sentence
-        fields = ('sentence',)
+        fields = ('order','category','elements','viewed')
 
-    # get_<name-of-field>
-    def get_sentence(self, obj):
-        user = self.context['request'].user
-        return obj.get_loaded_json(user)
+    def get_viewed(self, obj):
+        return self.context['request'].user.sentence_set.filter(pk=obj.pk).exists()
+
 
         
 class ArticleImportSerializer(serializers.Serializer):
@@ -61,6 +61,10 @@ class SentenceLookupSerializer(serializers.Serializer):
     
     sentences = serializers.JSONField()
     
+
+class SentenceEncounterSerializer(serializers.Serializer):
+    
+    cumulative = serializers.BooleanField()
     
 class TokenizerSerializer(serializers.Serializer):
     

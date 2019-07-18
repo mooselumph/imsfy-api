@@ -10,7 +10,8 @@ from project.api.serializers import (
     SentenceSerializer, 
     ArticleImportSerializer, 
     SentenceLookupSerializer, 
-    TokenizerSerializer
+    TokenizerSerializer,
+    SentenceEncounterSerializer
 )
 
 from rest_framework.views import APIView
@@ -138,7 +139,9 @@ class SentenceLookup(APIView):
 
     def get(self, request, word, format=None):
 
-        sentences = sentence_search(word)   
+        userId = request.user.id
+
+        sentences = sentence_search(word,userId)   
         data = {"sentences":sentences}    
             
         serializer = SentenceLookupSerializer(data=data)
@@ -146,6 +149,43 @@ class SentenceLookup(APIView):
         if serializer.is_valid():
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from project.api.functions import add_encounter, remove_encounter
+
+class WordEncounter(APIView):
+
+    def post(self, request, article_id, sentence_num, word, format=None):
+
+        # Add Encounter for Word
+        user = request.user
+        add_encounter(user,int(article_id),int(sentence_num),word)
+
+        return Response({}, status=status.HTTP_201_CREATED)
+
+
+class SentenceEncounter(APIView):
+
+    serializer_class = SentenceEncounterSerializer
+
+    def post(self, request, article_id, sentence_num, format=None):
+
+        # Add Encounters for Words in Sentence and Add User to Search Index
+        user = request.user
+        serializer = SentenceEncounterSerializer(data=request.data)
+        if serializer.is_valid():
+
+            add_encounter(user,int(article_id),int(sentence_num),cumulative=serializer.data['cumulative'])
+
+            return Response({}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        
+
+    def delete(self, request, article_id, sentence_num, format=None):
+        
+        # Remove Encounters for Words in Sentence and Remove User from Search Index
+        user = request.user
+        remove_encounter(user,int(article_id),int(sentence_num))
 
         
 from project.api.analysis import tokenize_text       

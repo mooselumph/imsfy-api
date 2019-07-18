@@ -21,9 +21,20 @@ class Sentence(InnerDoc):
     order = Integer()
     viewers = Integer()
     
-    def add_viewer(self, userId):
-        self.viewers.append(User(id=userId))
-                
+    def has_viewer(self,userId):
+        return userId in self.viewers
+            
+    def add_viewer(self,userId):
+        if self.viewers is None:
+            self.viewers = [userId]
+        elif not self.has_viewer(userId):
+            self.viewers.append(userId)
+            
+    def remove_viewer(self,userId):
+        if self.has_viewer(userId):
+            self.viewers.remove(userId)
+
+
 
 class Article(Document):
     url = Keyword()
@@ -37,8 +48,10 @@ class Article(Document):
     def add_sentences(self,sentences):
         order = 0
         for sentence in sentences:
-            if (sentence['type']=='sentence'):
+            if (sentence['category']=='sentence'):
                 self.sentences.append(Sentence(content=sentence['text'],order=order))
+            else:
+                self.sentences.append(Sentence(content='',order=order))
             order = order + 1
             
     def has_viewer(self,userId):
@@ -129,7 +142,7 @@ def reset_index():
     Article.init()
 
  
-def sentence_search(term):
+def sentence_search(term,userId):
 
     es = Elasticsearch(host='es')
 
@@ -140,7 +153,7 @@ def sentence_search(term):
                 "path": "sentences",
                     "query": {
                         "bool": {
-                            "must": [{ "match": { "sentences.content": term } }]
+                            "must": [{ "match": { "sentences.content": term } },{ "match": { "sentences.viewers": userId } }]
                         }
                     },
                 "inner_hits" : {}

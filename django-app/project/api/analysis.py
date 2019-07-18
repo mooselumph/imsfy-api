@@ -56,7 +56,7 @@ def segment_block(block):
                 fulltext += el['content']
 
         #return els
-        return {'type':'sentence','text':fulltext,'elements':els}
+        return {'category':'sentence','text':fulltext,'elements':els}
 
 
     def chunk_quotes(text):
@@ -106,7 +106,7 @@ def segment_block(block):
 def unblock_sentences(blocks):
         
     sentences = []
-    end = [{'type':'paragraph'}]    
+    end = [{'category':'paragraph'}]    
     for block in blocks:
         sentences = sentences + block + end
 
@@ -118,7 +118,7 @@ def tokenize_sentences(sentences,dictionary='ipadic'):
 
     for sentence in sentences:
         words = set()
-        if (sentence['type']=='sentence'):
+        if (sentence['category']=='sentence'):
             for el in sentence['elements']:
                 if 'content' in el:
                     el['tokens'],el_words = tokenize_text(el['content'])
@@ -151,12 +151,12 @@ def tokenize_text(text):
     with MeCab(r'-F%F,[6,8,0],%h\n -U,,,\n') as nm:
             
             for n in nm.parse(text, as_nodes=True):
-                if n.is_nor():
+                if not n.is_eos():
                     tokens.append(n.surface + ',' + n.feature)
 
                     parts = n.feature.split(',')
 
-                    if int(parts[3]) in SEARCHABLE_POSID:
+                    if n.is_nor() and int(parts[3]) in SEARCHABLE_POSID:
                         words.add(parts[0])
 
     return tokens,words
