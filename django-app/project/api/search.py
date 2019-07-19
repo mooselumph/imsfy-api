@@ -142,7 +142,7 @@ def reset_index():
     Article.init()
 
  
-def sentence_search(term,userId):
+def sentence_by_phrase(term,userId):
 
     es = Elasticsearch(host='es')
 

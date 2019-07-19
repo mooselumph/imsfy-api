@@ -1,5 +1,6 @@
 #from py4j.java_gateway import JavaGateway
 from natto import MeCab
+import jaconv
 import re
 from .app_settings import SEARCHABLE_POSID
     
@@ -148,13 +149,25 @@ def tokenize_text(text):
     tokens = []
     words = set()
 
-    with MeCab(r'-F%F,[6,8,0],%h\n -U,,,\n') as nm:
+    with MeCab(r'-F%F,[6,7,0],%h\n -U,,,\n') as nm:
             
             for n in nm.parse(text, as_nodes=True):
                 if not n.is_eos():
-                    tokens.append(n.surface + ',' + n.feature)
-
+                    
                     parts = n.feature.split(',')
+
+                    is_kana = '0'
+
+                    if parts[1] == n.surface:
+                        is_kana = '1'
+
+                    parts[1] = jaconv.kata2hira(parts[1])
+
+                    if parts[1] == n.surface:
+                        is_kana = '1'
+
+                    tokens.append(n.surface + ',' + ','.join(parts) + ',' + is_kana)
+
 
                     if n.is_nor() and int(parts[3]) in SEARCHABLE_POSID:
                         words.add(parts[0])
@@ -164,14 +177,15 @@ def tokenize_text(text):
 def tokenize_text_old(sentence):
 
 
-    with MeCab(r'-F%F,[6,8,0],%h\n -U,,,\n') as nm:
+    with MeCab(r'-F%F,[6,7,8,0],%h\n -U,,,\n') as nm:
     #with MeCab(r'-F%m,%f[0],%h,%f[8]\n -U?,?,?,?\n') as nm:  
 
         summary = []
         for n in nm.parse(sentence, as_nodes=True):
             # only normal nodes, ignore any end-of-sentence and unknown nodes
             if n.is_nor():
-                summary.append(n.feature)
+                f = n.surface + ',' + n.feature
+                summary.append(f.split(','))
 
     return summary
     

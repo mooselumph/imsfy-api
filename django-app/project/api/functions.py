@@ -15,15 +15,14 @@ def add_encounter(user,article_id,sentence_num,word=None,cumulative=True):
         method = 'word' if word else 'sentence'
         words = [word] if word else sentence.words
 
-        for word in words:
+        for w in words:
 
-            encounter = Encounter.objects.filter(user=user,word=word)
-            if len(encounter) == 0:
-                encounter = Encounter(user=user,word=word)
-            else:
-                encounter = encounter[0]
+            try: 
+                encounter = Encounter.objects.get(user=user,word=w)
+            except: 
+                encounter = Encounter(user=user,word=w)
+                encounter.save()
 
-            encounter.save()
             encounter.sentences.add(sentence)
 
         # Register viewer of sentence in Database
@@ -54,3 +53,51 @@ def remove_encounter(user,article_id,sentence_num,word=None):
     article_es = ArticleIndex.search().query('match',_id=article.es_id).execute()
     if len(article_es):
         article_es[0].sentences[sentence.order].remove_viewer(user.id)
+
+
+def get_word_stats(user,words):
+
+    stats = {}
+
+    for word in words:
+
+        stats[word] = learning_curve(user,word)
+
+    return stats
+
+
+        
+
+from django.utils import timezone
+from math import exp
+
+def learning_curve(user,word):
+    
+    rating = 0
+
+    try:
+        encounter = Encounter.objects.get(user=user,word=word)
+    except:
+        encounter = None
+
+    if encounter:
+        count = encounter.sentences.count()
+        
+        time_factor = (timezone.now() - encounter.last_seen).total_seconds()/1e6
+        rating = count*exp(-time_factor)
+
+    return rating
+
+
+from project.api.models import Sentence
+
+def sentence_by_word(user,word):
+
+    encounters = Encounter.objects.filter(user=user,word=word)
+
+    sentences = Sentence.objects.filter(encounter__in=encounters)
+
+    #sentences = [encounter.sentences for encounter in encounters]
+    #sentences = list(set(sentences))    
+        
+    return sentences

@@ -9,6 +9,7 @@ router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'article', views.ArticleViewSet)
 
+
 # Auth
 urlpatterns = [
     url(r'^', include(router.urls)),
@@ -34,8 +35,8 @@ urlpatterns += [
 
 # Sentence Search
 urlpatterns += [
-    url(r'^word/(?P<word>\w+)/raw-sentences/$',views.RawSentenceLookup.as_view(),name='raw-sentences-by-word'), # For development
-    url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceLookup.as_view(),name='sentences-by-word'), 
+    url(r'^phrase/(?P<word>\w+)/sentences/$',views.SentenceByPhrase.as_view(),name='sentences-by-phrase'), # For development
+    url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceByWordOrig.as_view(),name='sentences-by-word'), 
 ]
 
 # Development

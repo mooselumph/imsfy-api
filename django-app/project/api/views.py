@@ -6,23 +6,25 @@ from project.api.serializers import (
     UserSerializer, 
     ArticleSerializer, 
     ArticleWordsSerializer,
-    RawSentenceSerializer, 
     SentenceSerializer, 
     ArticleImportSerializer, 
-    SentenceLookupSerializer, 
     TokenizerSerializer,
-    SentenceEncounterSerializer
+    SentenceEncounterSerializer,
+    SentenceByPhraseSerializer,
+    SentenceByWordSerializer,
 )
 
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework import authentication, permissions, renderers
 
-from project.api.models import Article, import_article
+from project.api.models import Article, import_article, Word, Form
 from project.api.permissions import IsOwnerOrReadOnly
 
 from project.api.search import index_article
-from project.api.search import sentence_search
+
+from rest_framework.pagination import PageNumberPagination
 
 # from rest_framework_jwt.authentication import JSONWebTokenAuthentication as JWT
 
@@ -48,14 +50,6 @@ class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
-
-    # For development
-    @action(detail=True,url_path='raw-sentences')
-    def raw_sentences(self, request, *args, **kwargs):
-        article = self.get_object()
-        sentences = article.sentences.all()
-        serializer = RawSentenceSerializer(sentences,many=True,context={'request': request})
-        return Response(serializer.data)
 
     @action(detail=True)
     def sentences(self, request, *args, **kwargs):
@@ -107,48 +101,72 @@ class ArticleImport(APIView):
             return Response({'result':result,'data':data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+from project.api.search import sentence_by_phrase
+
 # For development
-class RawSentenceLookup(APIView):
+class SentenceByPhrase(APIView):
     """
     View to list all users in the system.
 
     * Only admin users are able to access this view.
     """
     #permission_classes = (permissions.IsAdminUser,)
-    serializer_class = SentenceSerializer
-
-    def get(self, request, word, format=None):
-
-        sentences = sentence_search(word)   
-        data = {"sentences":sentences}    
-            
-        serializer = SentenceLookupSerializer(data=data)
-        
-        if serializer.is_valid():
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class SentenceLookup(APIView):
-    """
-    View to list all users in the system.
-
-    * Only admin users are able to access this view.
-    """
-    #permission_classes = (permissions.IsAdminUser,)
-    serializer_class = SentenceSerializer
+    serializer_class = SentenceByPhraseSerializer
 
     def get(self, request, word, format=None):
 
         userId = request.user.id
 
-        sentences = sentence_search(word,userId)   
+        sentences = sentence_by_phrase(word,userId)   
         data = {"sentences":sentences}    
             
-        serializer = SentenceLookupSerializer(data=data)
+        serializer = SentenceByPhraseSerializer(data=data)
         
         if serializer.is_valid():
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from project.api.functions import sentence_by_word
+
+class SentenceByWordOrig(APIView):
+    """
+    View to list all users in the system.
+
+    * Only admin users are able to access this view.
+    """
+    #permission_classes = (permissions.IsAdminUser,)
+    serializer_class = SentenceByWordSerializer
+
+    def get(self, request, word, format=None):
+
+        sentences = sentence_by_word(request.user,word)   
+            
+        serializer = SentenceByWordSerializer(sentences,many=True,context={'request': request})
+        
+        return Response(serializer.data)
+
+class SmallResultsSetPagination(PageNumberPagination):
+    page_size = 5
+    page_size_query_param = 'page_size'
+    max_page_size = 10
+
+class SentenceByWord(ListAPIView):
+    """
+    View to list all users in the system.
+
+    * Only admin users are able to access this view.
+    """
+    #permission_classes = (permissions.IsAdminUser,)
+    serializer_class = SentenceByWordSerializer
+    pagination_class = SmallResultsSetPagination
+
+    def get_queryset(self):
+
+        sentences = sentence_by_word(self.request.user,self.kwargs['word'])
+        return sentences
+
 
 from project.api.functions import add_encounter, remove_encounter
 
@@ -187,8 +205,9 @@ class SentenceEncounter(APIView):
         user = request.user
         remove_encounter(user,int(article_id),int(sentence_num))
 
+
         
-from project.api.analysis import tokenize_text       
+from project.api.analysis import tokenize_text_old      
         
 
 class Tokenizer(APIView):
@@ -212,7 +231,7 @@ class Tokenizer(APIView):
             type = serializer.data['tokenizer']
             text = serializer.data['sentence']
         
-            tokens = tokenize_text(text)
+            tokens = tokenize_text_old(text)
             
             return render(request, 'tokenizer.html', {'tokens': tokens})
             #return Response({'tokens': tokens}, template_name='tokenizer.html')
