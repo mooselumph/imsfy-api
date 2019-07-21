@@ -1,13 +1,16 @@
 # Functions that span both search and models
+from project.api import search
+from project.api import models
 
-from project.api.models import Article, Encounter
-from project.api.search import Article as ArticleIndex
+#
+# Encounters
+#
 
 def add_encounter(user,article_id,sentence_num,word=None,cumulative=True):
 
     start = 0 if cumulative else sentence_num
 
-    article = Article.objects.get(id=article_id)
+    article = models.Article.objects.get(id=article_id)
     sentences = article.sentences.filter(order__in=range(start,sentence_num+1))
 
     for sentence in sentences:
@@ -18,9 +21,9 @@ def add_encounter(user,article_id,sentence_num,word=None,cumulative=True):
         for w in words:
 
             try: 
-                encounter = Encounter.objects.get(user=user,word=w)
+                encounter = models.Encounter.objects.get(user=user,word=w)
             except: 
-                encounter = Encounter(user=user,word=w)
+                encounter = models.Encounter(user=user,word=w)
                 encounter.save()
 
             encounter.sentences.add(sentence)
@@ -30,7 +33,7 @@ def add_encounter(user,article_id,sentence_num,word=None,cumulative=True):
 
     # Register viewer of sentence in Search Index
     if method == 'sentence':
-        article_es = ArticleIndex.search().query('match',_id=article.es_id).execute()
+        article_es = search.Article.search().query('match',_id=article.es_id).execute()
         if len(article_es):
             for order in range(start,sentence_num+1):
                 article_es[0].sentences[order].add_viewer(user.id)
@@ -38,10 +41,10 @@ def add_encounter(user,article_id,sentence_num,word=None,cumulative=True):
 
 def remove_encounter(user,article_id,sentence_num,word=None):
 
-    article = Article.objects.get(id=article_id)
+    article = models.Article.objects.get(id=article_id)
     sentence = article.sentences.get(order=sentence_num)
 
-    encounters = Encounter.objects.filter(sentences=sentence)
+    encounters = models.Encounter.objects.filter(sentences=sentence)
 
     for encounter in encounters:
         encounter.sentences.remove(sentence)
@@ -50,10 +53,9 @@ def remove_encounter(user,article_id,sentence_num,word=None):
     sentence.viewers.remove(user)
 
     # Deregister viewers of sentence in Search Inex
-    article_es = ArticleIndex.search().query('match',_id=article.es_id).execute()
+    article_es = search.Article.search().query('match',_id=article.es_id).execute()
     if len(article_es):
         article_es[0].sentences[sentence.order].remove_viewer(user.id)
-
 
 def get_word_stats(user,words):
 
@@ -64,10 +66,7 @@ def get_word_stats(user,words):
         stats[word] = learning_curve(user,word)
 
     return stats
-
-
-        
-
+       
 from django.utils import timezone
 from math import exp
 
@@ -76,7 +75,7 @@ def learning_curve(user,word):
     rating = 0
 
     try:
-        encounter = Encounter.objects.get(user=user,word=word)
+        encounter = models.Encounter.objects.get(user=user,word=word)
     except:
         encounter = None
 
@@ -88,16 +87,25 @@ def learning_curve(user,word):
 
     return rating
 
+#
+# Search capability
+#
 
-from project.api.models import Sentence
+from django.db.models import Count
 
 def sentence_by_word(user,word):
 
-    encounters = Encounter.objects.filter(user=user,word=word)
-
-    sentences = Sentence.objects.filter(encounter__in=encounters)
-
-    #sentences = [encounter.sentences for encounter in encounters]
-    #sentences = list(set(sentences))    
+    encounters = models.Encounter.objects.filter(user=user,word=word)
+    sentences = models.Sentence.objects.filter(encounter__in=encounters)  
         
+    return sentences
+
+def article_by_word(user,word):
+
+    articles = models.Article.objects.filter(sentences__words__contains=word,sentences__viewers=user).annotate(count=Count('sentences')).order_by('-count')
+    return articles
+
+def sentence_by_article(user,article,word):
+
+    sentences = models.Sentence.objects.filter(viewers=user,article=article,words__contains=word).order_by('pk')
     return sentences

@@ -33,10 +33,12 @@ urlpatterns += [
     url(r'^encounter/article/(?P<article_id>\w+)/sentence/(?P<sentence_num>\w+)/word/(?P<word>\w+)/$',views.WordEncounter.as_view(),name='word-encounter'), 
 ]
 
-# Sentence Search
+# Sentence Search (All Paginated)
 urlpatterns += [
     url(r'^phrase/(?P<word>\w+)/sentences/$',views.SentenceByPhrase.as_view(),name='sentences-by-phrase'), # For development
-    url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceByWordOrig.as_view(),name='sentences-by-word'), 
+    url(r'^word/(?P<word>\w+)/sentences/$',views.SentenceByWord.as_view(),name='sentences-by-word'), 
+    url(r'^word/(?P<word>\w+)/articles/$',views.ArticleByWord.as_view(),name='articles-by-word'), 
+    url(r'^word/(?P<word>\w+)/article/(?P<article_id>\w+)/sentences/$',views.SentenceByArticleAndWord.as_view(),name='sentences-by-article-and-word'), 
 ]
 
 # Development

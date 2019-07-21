@@ -2,7 +2,8 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField, ArrayField
 from django.contrib.auth.models import User
 
-# Create your models here.
+# Basic Models
+
 class Article(models.Model):    
     remote_url = models.URLField()
     #latest = models.BooleanField(default=True)
@@ -26,7 +27,7 @@ class Sentence(models.Model):
     class Meta:
         ordering = ('order',)
 
-# Encounter
+# Encounters
 
 class Encounter(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
@@ -78,8 +79,7 @@ class Gloss(models.Model):
         ordering = ('order',)
 
 
-# Utilities 
-
+# Utility Functions (TODO: move to functions.py)
 
 def import_article(url,es_id,title,sentences,words):
 
