@@ -41,6 +41,11 @@ urlpatterns += [
     url(r'^word/(?P<word>\w+)/article/(?P<article_id>\w+)/sentences/$',views.SentenceByArticleAndWord.as_view(),name='sentences-by-article-and-word'), 
 ]
 
+# Dict
+urlpatterns += [
+    url(r'^dict/(?P<form>\w+)/$',views.DictionaryLookup.as_view(),name='dictionary'), 
+]
+
 # Development
 urlpatterns += [ 
     url(r'^tokenize/',views.Tokenizer.as_view(),name='tokenizer'),

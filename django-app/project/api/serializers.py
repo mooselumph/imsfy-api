@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
-from project.api.models import Article, Sentence, Word
 from rest_framework import serializers
 
+from project.api import models
 
 from project.api.functions import get_word_stats
 
@@ -24,7 +24,7 @@ class ArticleSerializer(serializers.HyperlinkedModelSerializer):
     words = serializers.HyperlinkedIdentityField(many=False, view_name='article-words', read_only=True)
 
     class Meta:
-        model = Article
+        model = models.Article
         fields = ('url', 'id', 'remote_url', 'title', 'sentences', 'words')
 
 class SentenceSerializer(serializers.ModelSerializer):
@@ -32,7 +32,7 @@ class SentenceSerializer(serializers.ModelSerializer):
     viewed = serializers.SerializerMethodField()
 
     class Meta:
-        model = Sentence
+        model = models.Sentence
         fields = ('order','category','elements','viewed')
 
     def get_viewed(self, obj):
@@ -42,7 +42,7 @@ class ArticleWordsSerializer(serializers.ModelSerializer):
     stats = serializers.SerializerMethodField()
 
     class Meta:
-        model = Article
+        model = models.Article
         fields = ('stats',)
 
     def get_stats(self, obj):
@@ -72,7 +72,7 @@ class SentenceByWordSerializer(serializers.ModelSerializer):
     stats = serializers.SerializerMethodField()
 
     class Meta:
-        model = Sentence
+        model = models.Sentence
         fields = ('article','order','category','elements','stats')
 
     def get_stats(self, obj):
@@ -91,7 +91,7 @@ class ArticleByWordSerializer(serializers.ModelSerializer):
     count = serializers.IntegerField()
 
     class Meta:
-        model = Article
+        model = models.Article
         fields = ('id','title','count','selected_sentences')
 
     def get_selected_sentences(self,obj):
@@ -112,9 +112,46 @@ class SentenceByPhraseSerializer(serializers.Serializer):
 class SentenceEncounterSerializer(serializers.Serializer):
     
     cumulative = serializers.BooleanField()
-    
+
+#
+# For Dictionary
+#
+
+
+class FormSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Form
+        fields = ('category','characters','information','priority','restriction')
+
+class GlossSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Gloss
+        fields = ('text',)
+        
+class SenseSerializer(serializers.ModelSerializer):
+    glosses = GlossSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = models.Sense
+        fields = ('glosses','pos','field','misc')
+
+
+class DictionaryLookupSerializer(serializers.ModelSerializer):
+    forms = FormSerializer(many=True, read_only=True)
+    senses = SenseSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = models.Word
+        fields = ('forms','senses')
+
+#
+# Tokenization
+#
+
 class TokenizerSerializer(serializers.Serializer):
     
     tokenizer = serializers.ChoiceField(choices=['ipadic','naist-jdic','unidic','unidic-kanaaccent','jumandic'])
     sentence = serializers.CharField(style={'base_template': 'textarea.html'})
-
+   

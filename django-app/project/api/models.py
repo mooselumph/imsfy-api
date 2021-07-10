@@ -43,7 +43,7 @@ class Word(models.Model):
 class Form(models.Model):
     order = models.IntegerField()
     category = models.CharField(max_length=100,default='')
-    word = models.ForeignKey(Word,on_delete=models.CASCADE)
+    word = models.ForeignKey(Word,on_delete=models.CASCADE,related_name='forms')
     characters = models.CharField(max_length=100,default='')
     information = models.CharField(max_length=1000,default='')
     priority = models.CharField(max_length=100,default='')
@@ -56,7 +56,7 @@ class Form(models.Model):
 
 class Sense(models.Model):
     order = models.IntegerField()
-    word = models.ForeignKey(Word,on_delete=models.CASCADE)
+    word = models.ForeignKey(Word,on_delete=models.CASCADE,related_name='senses')
     restriction = models.CharField(max_length=100,default='')
     xref = models.CharField(max_length=100,default='')
     antonym = models.CharField(max_length=100,default='')
@@ -72,7 +72,7 @@ class Sense(models.Model):
 
 class Gloss(models.Model):
     order = models.IntegerField()
-    sense = models.ForeignKey(Sense,on_delete=models.CASCADE)
+    sense = models.ForeignKey(Sense,on_delete=models.CASCADE,related_name='glosses')
     text = models.CharField(max_length=1000,default='')
 
     class Meta:

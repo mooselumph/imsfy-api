@@ -238,6 +238,22 @@ class SentenceEncounter(APIView):
         user = request.user
         remove_encounter(user,int(article_id),int(sentence_num))
 
+#
+# Dictionary
+#
+
+class DictionaryLookup(ListAPIView):
+    """
+    List entries for a given search word or phrase. Not Pageinated.
+    """
+
+    serializer_class = serializers.DictionaryLookupSerializer
+
+    def get_queryset(self):
+
+        words = models.Word.objects.filter(forms__characters=self.kwargs['form'])
+        return words
+
 
 #
 # Tokenization (For development)
